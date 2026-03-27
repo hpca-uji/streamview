@@ -1,3 +1,0 @@
-
-[fast]
-sabctools>=9.3.0
