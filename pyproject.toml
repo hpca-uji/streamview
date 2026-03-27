@@ -15,7 +15,7 @@ classifiers = [
     "Topic :: Utilities"
 ]
 keywords = ["Pipe", "Structure", "Python"]
-urls = { Homepage = "https://github.com/hpca-uji/streamview", Repository = "https://github.com/hpca-uji/streamview.git"}
+urls = { Homepage = "https://github.com/hpca-uji/streamview", Repository = "https://github.com/hpca-uji/streamview.git" }
 
 requires-python = ">=3.13"
 
