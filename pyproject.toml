@@ -1,7 +1,7 @@
 [project]
 name = "streamview"
 version = "1.0.0"
-description = "Easy & fast network communications using queues"
+description = "Zero-copy non-blocking pipe-like structure"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
@@ -13,9 +13,9 @@ classifiers = [
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.13",
-    "Topic :: System :: Networking",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Utilities"
+    "Topic :: Utilities",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"
 ]
 keywords = ["Communication", "Protocol", "Python"]
 urls = { Homepage = "https://github.com/hpca-uji/streamview", Repository = "https://github.com/hpca-uji/streamview.git"}

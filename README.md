@@ -1,5 +1,5 @@
 # streamview
-Zero-copy & lock-free network communications using queues
+Zero-copy non-blocking pipe-like structure
 
 ## Install
 ### Production
