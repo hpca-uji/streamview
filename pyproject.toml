@@ -1,0 +1,40 @@
+[project]
+name = "streamview"
+version = "1.0.0"
+description = "Easy & fast network communications using queues"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Miguel Ángel Prosper", email = "mprosper@uji.es" }
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Networking",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities"
+]
+keywords = ["Communication", "Protocol", "Python"]
+urls = { Homepage = "https://github.com/hpca-uji/streamview", Repository = "https://github.com/hpca-uji/streamview.git"}
+
+requires-python = ">=3.13"
+
+[project.optional-dependencies]
+fast = [
+    "sabctools>=9.3.0"
+]
+
+[build-system]
+requires = [
+    "setuptools>=68.2.0"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = [
+    "streamview",
+    "streamview.*"
+]
