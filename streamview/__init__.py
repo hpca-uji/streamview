@@ -53,7 +53,7 @@ class Stream(io.BufferedIOBase):
     Reader is responsible of releasing chunks.
     Writer hands off responsibility over chunks.
 
-    Stream has `with`, `bytes`, `copy` and `deepcopy` support.
+    Stream has `with`, `bytes`, `bool`, `copy` and `deepcopy` support.
     """
 
     __slots__ = ("_nbytes", "_chunks")
