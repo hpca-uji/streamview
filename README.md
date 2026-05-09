@@ -25,8 +25,8 @@ pip install -e .
 
   Operations consume the stream.
   Operations are not thread-safe.
-  Reader is responsible of releasing chunks.
-  Writer hands off responsibility over chunks.
+  Reader is responsible of releasing buffers.
+  Writer hands off responsibility over buffers.
 
   Stream has `with`, `bytes`, `bool`, `copy` and `deepcopy` support.
 
@@ -34,43 +34,43 @@ pip install -e .
 
   - `__len__() -> int`
 
-    Number of chunks held in stream
+    Number of buffers held in stream
 
   - `nbytes -> int`
 
     Number of bytes held in stream
 
-  - `chunks -> Iterable[memoryview]`
+  - `buffers -> Iterable[memoryview]`
 
-    Peeking iterator over chunks
+    Peeking iterator over buffers
 
   - `__getitem__(index) -> memoryview`
 
-    Peek a chunk from the stream
+    Peek a buffer from the stream
 
-  - `unreadchunk(chunk: memoryview) -> int`
+  - `unreadbuffer(b: memoryview) -> int`
 
-    Unread a chunk into the stream
+    Unread a buffer into the stream
 
-  - `readchunk() -> memoryview`
+  - `readbuffer() -> memoryview`
 
-    Read a chunk from stream
+    Read a buffer from stream
 
-  - `readchunks() -> Iterable[memoryview]`
+  - `readbuffers() -> Iterable[memoryview]`
 
-    Read all chunks from stream
+    Read all buffers from stream
 
-  - `unwritechunk() -> memoryview`
+  - `unwritebuffer() -> memoryview`
 
-    Unwrite a chunk from the stream
+    Unwrite a buffer from the stream
 
-  - `writechunk(chunk: memoryview) -> int`
+  - `writebuffer(b: memoryview) -> int`
 
-    Write a chunk into the stream
+    Write a buffer into the stream
 
-  - `writechunks(chunks: Iterable[memoryview]) -> int`
+  - `writebuffers(bs: Iterable[memoryview]) -> int`
 
-    Write many chunks into the stream
+    Write many buffers into the stream
 
   - `frombuffer(b: Buffer) -> Stream`
 

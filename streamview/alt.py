@@ -18,7 +18,7 @@ class PipeStream(Stream):
     def copy(self) -> Stream:
         """Shallow copy of stream"""
         other = self.__class__()
-        other.update(map(bytes, self._chunks))
+        other.writelines(map(bytes, self._buffers))
         return other
 
     # io methods
@@ -34,21 +34,21 @@ class PipeStream(Stream):
 class BytesStream(Stream):
     """Stream that emulates a bytes behavior"""
 
-    def _merge_chunks(self) -> None:
-        """Merge chunks into contiguous memory"""
-        chunk = byteview(b"".join(self._chunks))
-        self._chunks.clear()
-        self._chunks.append(chunk)
+    def _merge_buffers(self) -> None:
+        """Merge buffers into contiguous memory"""
+        b = byteview(b"".join(self._buffers))
+        self._buffers.clear()
+        self._buffers.append(b)
 
     # stream base methods
-    def unreadchunk(self, chunk: memoryview) -> int:
-        """Unread a chunk into the stream"""
-        size = super().unreadchunk(chunk)
-        self._merge_chunks()
+    def unreadbuffer(self, buffer: memoryview) -> int:
+        """Unread a buffer into the stream"""
+        size = super().unreadbuffer(buffer)
+        self._merge_buffers()
         return size
 
-    def writechunk(self, chunk: memoryview) -> int:
-        """Write a chunk into the stream"""
-        size = super().writechunk(chunk)
-        self._merge_chunks()
+    def writebuffer(self, buffer: memoryview) -> int:
+        """Write a buffer into the stream"""
+        size = super().writebuffer(buffer)
+        self._merge_buffers()
         return size
