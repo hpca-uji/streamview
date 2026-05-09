@@ -23,6 +23,7 @@ pip install -e .
   Interface mimics a non-blocking BufferedIOBase,
   but operations return memoryviews instead of bytes.
 
+  Operations consume the stream.
   Operations are not thread-safe.
   Reader is responsible of releasing chunks.
   Writer hands off responsibility over chunks.
@@ -31,17 +32,21 @@ pip install -e .
 
   Extends: `BufferedIOBase`
 
+  - `__len__() -> int`
+
+    Number of chunks held in stream
+
   - `nbytes -> int`
 
     Number of bytes held in stream
 
-  - `nchunks -> int`
+  - `chunks -> Iterable[memoryview]`
 
-    Number of chunks held in stream
+    Peeking iterator over chunks
 
-  - `readchunk() -> memoryview`
+  - `__getitem__(index) -> memoryview`
 
-    Read a chunk from stream
+    Peek a chunk from the stream
 
   - `unreadchunk(chunk: memoryview) -> int`
 
@@ -51,6 +56,10 @@ pip install -e .
 
     Read a chunk from stream
 
+  - `readchunks() -> Iterable[memoryview]`
+
+    Read all chunks from stream
+
   - `unwritechunk() -> memoryview`
 
     Unwrite a chunk from the stream
@@ -59,37 +68,21 @@ pip install -e .
 
     Write a chunk into the stream
 
-  - `peekchunk() -> memoryview`
-
-    Peek a chunk from stream
-
-  - `readchunks() -> Iterable[memoryview]`
-
-    Read all chunks from stream
-
   - `writechunks(chunks: Iterable[memoryview]) -> int`
 
     Write many chunks into the stream
 
-  - `update(bs: Iterable[Buffer]) -> int`
+  - `frombuffer(b: Buffer) -> Stream`
 
-    Write many buffers into the stream
+      Construct a stream from a buffer
 
-  - `clear() -> None`
+  - `tobuffer() -> memoryview`
 
-    Release all chunks
+      Transform stream to contiguous buffer (may copy)
 
   - `copy() -> Stream`
 
     Shallow copy of stream
-
-  - `tobytes() -> bytes`
-
-      Transform stream to bytes (will copy)
-
-  - `frombytes(b: Buffer) -> Stream`
-
-      Construct a stream from bytes
 
 ### Functions
 - `byteview(b: Buffer) -> memoryview`

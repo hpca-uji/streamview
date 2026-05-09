@@ -49,6 +49,7 @@ class Stream(io.BufferedIOBase):
     Interface mimics a non-blocking BufferedIOBase,
     but operations return memoryviews instead of bytes.
 
+    Operations consume the stream.
     Operations are not thread-safe.
     Reader is responsible of releasing chunks.
     Writer hands off responsibility over chunks.
@@ -60,25 +61,37 @@ class Stream(io.BufferedIOBase):
 
     def __init__(self):
         """Initialize stream"""
-        self._nbytes = 0
         self._chunks = deque[memoryview]()
+        self._nbytes = 0
 
     # stream properties
+    def __repr__(self) -> str:
+        """Stream representation"""
+        return f"<{self.__class__.__name__} chunks={len(self)} nbytes={self.nbytes} at 0x{id(self):x}>"
+
+    def __bool__(self) -> bool:
+        """Stream has data (would read not block)"""
+        return bool(self._chunks)
+
+    def __len__(self) -> int:
+        """Number of chunks held in stream"""
+        return len(self._chunks)
+
     @property
     def nbytes(self) -> int:
         """Number of bytes held in stream"""
         return self._nbytes
 
     @property
-    def nchunks(self) -> int:
-        """Number of chunks held in stream"""
-        return len(self._chunks)
+    def chunks(self) -> abc.Iterable[memoryview]:
+        """Peeking iterator over chunks"""
+        return iter(self._chunks)
 
-    def __bool__(self) -> bool:
-        """Stream has data (would read not block)"""
-        return bool(self._chunks)
+    # stream methods
+    def __getitem__(self, index):
+        """Peek a chunk from the stream"""
+        return self._chunks[index]
 
-    # stream base methods
     def unreadchunk(self, chunk: memoryview) -> int:
         """Unread a chunk into the stream"""
         size = len(chunk)
@@ -99,6 +112,11 @@ class Stream(io.BufferedIOBase):
         chunk = self._chunks.popleft()
         self._nbytes -= len(chunk)
         return chunk
+
+    def readchunks(self) -> abc.Iterable[memoryview]:
+        """Read all chunks from stream"""
+        while self:
+            yield self.readchunk()
 
     def unwritechunk(self) -> memoryview:
         """Unwrite a chunk from the stream"""
@@ -121,16 +139,6 @@ class Stream(io.BufferedIOBase):
         self._nbytes += size
         return size
 
-    def peekchunk(self) -> memoryview:
-        """Peek a chunk from stream"""
-        return self._chunks[0] if self else byteview(b"")
-
-    # stream extended methods
-    def readchunks(self) -> abc.Iterable[memoryview]:
-        """Read all chunks from stream"""
-        while self:
-            yield self.readchunk()
-
     def writechunks(self, chunks: abc.Iterable[memoryview]) -> int:
         """Write many chunks into the stream"""
         size = 0
@@ -140,40 +148,28 @@ class Stream(io.BufferedIOBase):
 
         return size
 
-    def update(self, bs: abc.Iterable[abc.Buffer]) -> int:
-        """Write many buffers into the stream"""
-        size = 0
-
-        for b in bs:
-            size += self.write(b)
-
-        return size
-
-    def clear(self) -> None:
-        """Release all chunks"""
-        for chunk in self.readchunks():
-            chunk.release()
-
-    def copy(self) -> Stream:
-        """Shallow copy of stream"""
-        other = self.__class__()
-        other.update(self._chunks)
-        return other
-
-    def tobytes(self) -> bytes:
-        """Transform stream to bytes (will copy)"""
-        return self.read().tobytes() if self else b""
-
+    # helper methods
     @classmethod
-    def frombytes(cls, b: abc.Buffer) -> Stream:
-        """Construct a stream from bytes"""
+    def frombuffer(cls, b: abc.Buffer) -> Stream:
+        """Construct a stream from a buffer"""
         stream = cls()
         stream.write(b)
         return stream
 
+    def tobuffer(self) -> memoryview:
+        """Transform stream to contiguous buffer (may copy)"""
+        return self.read() if self else byteview(b"")
+
     def __bytes__(self) -> bytes:
         """Transform stream to bytes (will copy)"""
-        return self.tobytes()
+        with self.tobuffer() as view:
+            return bytes(view)
+
+    def copy(self) -> Stream:
+        """Shallow copy of stream"""
+        other = self.__class__()
+        other.writelines(self._chunks)
+        return other
 
     def __copy__(self) -> Stream:
         """Shallow copy of stream"""
@@ -182,6 +178,7 @@ class Stream(io.BufferedIOBase):
     def __deepcopy__(self, memo) -> Stream:
         """Deep copy of stream"""
         stream = self.copy()
+        memo[id(self)] = stream
         stream.writechunk(stream.read())
         return stream
 
@@ -192,24 +189,14 @@ class Stream(io.BufferedIOBase):
         size = self.writechunk(chunk)
         return size
 
-    def readline(self) -> memoryview:
-        """Read a line and return a memoryview (may copy)"""
-        if not self:
-            raise BlockingIOError()
+    def writelines(self, bs: abc.Iterable[abc.Buffer]) -> int:
+        """Write many buffers into the stream"""
+        size = 0
 
-        with Stream() as stream:
-            for chunk in self.readchunks():
-                try:
-                    i = buffer_index(chunk, b"\n")
-                except ValueError:
-                    stream.writechunk(chunk)
-                    continue
-                else:
-                    self.unreadchunk(chunk)
-                    chunk = self.read1(i)
-                    stream.writechunk(chunk)
-                    break
-            return stream.read()
+        for b in bs:
+            size += self.write(b)
+
+        return size
 
     def read1(self, size: int = -1, /) -> memoryview:
         """Reads, with at most one operation, and returns a memoryview"""
@@ -263,6 +250,71 @@ class Stream(io.BufferedIOBase):
         self.readinto(buffer)
         return byteview(buffer)
 
+    def readline(self) -> memoryview:
+        """Read a line and return a memoryview (may copy)"""
+        if not self:
+            raise BlockingIOError()
+
+        with Stream() as stream:
+            for chunk in self.readchunks():
+                try:
+                    i = buffer_index(chunk, b"\n")
+                except ValueError:
+                    stream.writechunk(chunk)
+                    continue
+                else:
+                    self.unreadchunk(chunk)
+                    chunk = self.read1(i)
+                    stream.writechunk(chunk)
+                    break
+            return stream.read()
+
+    def readlines(self) -> abc.Iterable[memoryview]:
+        """Read many chunks from the stream"""
+        while self:
+            yield self.readline()
+
+    def seek(self, offset, whence=io.SEEK_SET, /) -> int:
+        """
+        Change stream position to the given byte offset (only SEEK_SET is supported)
+
+        *Note*: consumes data as read, but guaranteeing no copies
+        """
+        if whence is not io.SEEK_SET:
+            raise OSError()
+
+        read = 0
+        while self and read < offset:
+            with self.read1(offset - read) as view:
+                read += len(view)
+
+        return offset
+
+    def truncate(self, size=None, /) -> int:
+        """Resize the stream to the given size in bytes"""
+        if size is None:
+            size = 0
+
+        with Stream() as stream:
+            # Slice
+            read = 0
+            while self and read < size:
+                view = self.read1(size - read)
+                read += stream.writechunk(view)
+
+            # Truncate
+            self.close()
+
+            # Restore
+            self.writechunks(stream.readchunks())
+
+        return read
+
+    def close(self) -> None:
+        """Release all chunks"""
+        for chunk in self.readchunks():
+            chunk.release()
+
     def __del__(self) -> None:
         """Best effort finalizer"""
         try:
@@ -270,15 +322,12 @@ class Stream(io.BufferedIOBase):
         except:  # noqa: E722
             pass
 
-    # io stubs
-    def __iter__(self) -> abc.Iterable[memoryview]:
-        return self.readlines()
-
+    # io properties
     def fileno(self) -> int:
         raise OSError()
 
-    def flush(self) -> None:
-        pass
+    def tell(self) -> int:
+        return 0
 
     def isatty(self) -> bool:
         return False
@@ -286,30 +335,18 @@ class Stream(io.BufferedIOBase):
     def readable(self) -> bool:
         return True
 
-    def readlines(self):
-        while self:
-            yield self.readline()
-
-    def seek(self, offset, whence=io.SEEK_SET, /) -> int:
-        raise OSError()
-
     def seekable(self) -> bool:
-        return False
-
-    def tell(self) -> int:
-        raise OSError()
-
-    def truncate(self, size=None, /) -> int:
-        raise OSError()
+        return True
 
     def writable(self) -> bool:
         return True
 
-    def writelines(self, lines: abc.Iterable[abc.Buffer], /) -> None:
-        self.update(lines)
+    def flush(self) -> None:
+        pass
+
+    # io stubs
+    def __iter__(self) -> abc.Iterable[memoryview]:
+        return self.readlines()
 
     def detach(self) -> abc.Buffer:
         raise io.UnsupportedOperation()
-
-    def close(self) -> None:
-        self.clear()
