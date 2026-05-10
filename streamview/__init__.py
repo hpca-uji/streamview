@@ -301,15 +301,15 @@ class Stream(io.BufferedIOBase):
             size = 0
 
         with Stream() as stream:
-            # Splice
-            read = 0
-            while self and read < size:
-                view = self.read1(size - read)
-                read += stream.writebuffer(view)
-
             # Swap
             self._buffers, stream._buffers = stream._buffers, self._buffers
             self._nbytes, stream._nbytes = stream._nbytes, self._nbytes
+
+            # Slice
+            read = 0
+            while stream and read < size:
+                view = stream.read1(size - read)
+                read += self.writebuffer(view)
 
         return read
 
