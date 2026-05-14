@@ -1,6 +1,35 @@
 # streamview
 Zero-copy non-blocking pipe-like structure
 
+Stream primitive extending Python's standard I/O model with zero-copy and scatter/gather semantics.
+
+- Zero-copy operations using `memoryview`
+- `BufferedIOBase` compatible API
+- Non-blocking I/O semantics
+- Compatible with existing Python I/O tooling and libraries
+- Efficient handling of fragmented buffers without unnecessary copies
+- Explicit ownership transfer of buffers
+- Lightweight stream copies with shared underlying buffers
+- Supports both high-level I/O usage and low-level buffer access
+- Lightweight and dependency-free
+- Designed for high-throughput data pipelines
+
+## Example
+```python
+from streamview import Stream
+
+stream = Stream()
+
+stream.write(b"hello")
+stream.write(b"world")
+
+print(stream)
+# <Stream views=2 nbytes=10>
+
+print(bytes(stream.read()))
+# b"helloworld"
+```
+
 ## Install
 ### Production
 ```bash
@@ -25,8 +54,8 @@ pip install -e .
 
   Operations consume the stream.
   Operations are not thread-safe.
-  Reader is responsible of releasing buffers.
-  Writer hands off responsibility over buffers.
+  Reader is responsible of releasing views.
+  Writer hands off responsibility over views.
 
   Stream has `with`, `bytes`, `bool`, `copy` and `deepcopy` support.
 
@@ -34,51 +63,51 @@ pip install -e .
 
   - `__len__() -> int`
 
-    Number of buffers held in stream
+    Number of views held in stream
 
   - `nbytes -> int`
 
     Number of bytes held in stream
 
-  - `buffers -> Iterable[memoryview]`
+  - `views -> Iterable[memoryview]`
 
-    Peeking iterator over buffers
+    Peeking iterator over views
 
   - `__getitem__(index) -> memoryview`
 
-    Peek a buffer from the stream
+    Peek a view from the stream
 
-  - `unreadbuffer(b: memoryview) -> int`
+  - `unreadview(v: memoryview) -> int`
 
-    Unread a buffer into the stream
+    Unread a view into the stream
 
-  - `readbuffer() -> memoryview`
+  - `readview() -> memoryview`
 
-    Read a buffer from stream
+    Read a view from stream
 
-  - `readbuffers() -> Iterable[memoryview]`
+  - `readviews() -> Iterable[memoryview]`
 
-    Read all buffers from stream
+    Read all views from stream
 
-  - `unwritebuffer() -> memoryview`
+  - `unwriteview() -> memoryview`
 
-    Unwrite a buffer from the stream
+    Unwrite a view from the stream
 
-  - `writebuffer(b: memoryview) -> int`
+  - `writeview(v: memoryview) -> int`
 
-    Write a buffer into the stream
+    Write a view into the stream
 
-  - `writebuffers(bs: Iterable[memoryview]) -> int`
+  - `writeviews(vs: Iterable[memoryview]) -> int`
 
-    Write many buffers into the stream
+    Write many views into the stream
 
   - `frombuffer(b: Buffer) -> Stream`
 
       Construct a stream from a buffer
 
-  - `tobuffer() -> memoryview`
+  - `toview() -> memoryview`
 
-      Transform stream to contiguous buffer (may copy)
+      Transform stream to contiguous view (may copy)
 
   - `copy() -> Stream`
 
